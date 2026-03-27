@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Checkout E-Commerce Terdistribusi</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #f8f9fa; padding-top: 40px; padding-bottom: 40px; }
+        .card { border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+        .info-label { font-size: 0.9rem; color: #6c757d; }
+        .info-value { font-weight: 500; font-size: 1.1rem; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-7">
+            <h2 class="text-center mb-4 text-primary">Sistem Checkout E-Commerce</h2>
+            
+            <div class="card p-4 mb-4 border-0">
+                <h5 class="mb-3 border-bottom pb-2">Formulir Pesanan</h5>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label fw-bold">ID Produk</label>
+                        <input type="number" id="productId" class="form-control" value="1" min="1" max="6">
+                        <small class="text-muted">Pilih angka 1 sampai 6</small>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label fw-bold">Kode Kupon (Opsional)</label>
+                        <input type="text" id="couponCode" class="form-control" placeholder="Ketik HEMAT10">
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label fw-bold">Zona Pengiriman</label>
+                        <select id="shippingZone" class="form-select">
+                            <option value="local">Lokal (Local)</option>
+                            <option value="national">Nasional (National)</option>
+                            <option value="international">Internasional (International)</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label fw-bold">Tipe Layanan</label>
+                        <select id="shippingType" class="form-select">
+                            <option value="regular">Reguler (Regular)</option>
+                            <option value="express">Ekspres (Express)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <button onclick="prosesCheckout()" class="btn btn-primary w-100 mt-2 py-2 fw-bold">
+                    Kalkulasi Total Pembayaran
+                </button>
+            </div>
+
+            <div id="resultCard" class="card p-4 border-0 d-none">
+                <h4 class="border-bottom pb-2 mb-3 text-success">Rincian Tagihan Resmi</h4>
+                
+                <div class="row mb-2">
+                    <div class="col-6"><span class="info-label">Nama Produk</span><br><span id="resName" class="info-value"></span></div>
+                    <div class="col-6"><span class="info-label">Kategori</span><br><span id="resCategory" class="info-value text-capitalize"></span></div>
+                </div>
+                
+                <div class="row mb-2">
+                    <div class="col-6"><span class="info-label">Harga Dasar</span><br><span id="resPrice" class="info-value"></span></div>
+                    <div class="col-6"><span class="info-label">Estimasi Tiba</span><br><span id="resEstDays" class="info-value"></span></div>
+                </div>
+
+                <div class="row mb-3 border-bottom pb-3">
+                    <div class="col-6"><span class="info-label">Ongkos Kirim</span><br><span id="resShipping" class="info-value"></span></div>
+                    <div class="col-6"><span class="info-label">Potongan Diskon (<span id="resDiscountPercent"></span>)</span><br><span id="resDiscountAmount" class="info-value text-danger"></span></div>
+                </div>
+
+                <div class="d-flex justify-content-between align-items-center mt-2">
+                    <h5 class="mb-0 text-muted">Total Pembayaran</h5>
+                    <h3 class="mb-0 text-primary fw-bold" id="resTotal"></h3>
+                </div>
+            </div>
+
+            <div id="errorAlert" class="alert alert-danger mt-3 d-none fw-bold text-center"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+    async function prosesCheckout() {
+        const id = document.getElementById('productId').value;
+        const coupon = document.getElementById('couponCode').value;
+        const zone = document.getElementById('shippingZone').value;
+        const type = document.getElementById('shippingType').value;
+        
+        const resultCard = document.getElementById('resultCard');
+        const errorAlert = document.getElementById('errorAlert');
+        
+        resultCard.classList.add('d-none');
+        errorAlert.classList.add('d-none');
+
+        try {
+            // Sistem mengirim parameter dinamis ke endpoint backend Flask
+            const url = `/checkout/${id}?coupon=${coupon}&zone=${zone}&type=${type}`;
+            const response = await fetch(url);
+            const data = await response.json();
+
+            if (!response.ok) {
+                errorAlert.textContent = data.error || "Terjadi kesalahan pada peladen.";
+                errorAlert.classList.remove('d-none');
+                return;
+            }
+
+            // Sistem menyisipkan data JSON langsung ke elemen HTML
+            document.getElementById('resName').textContent = data.product;
+            document.getElementById('resCategory').textContent = data.details.category;
+            document.getElementById('resPrice').textContent = data.price_original;
+            document.getElementById('resEstDays').textContent = data.details.estimated_days;
+            document.getElementById('resShipping').textContent = data.shipping_cost;
+            document.getElementById('resDiscountPercent').textContent = data.discount_applied;
+            document.getElementById('resDiscountAmount').textContent = "-" + data.discount_saved;
+            document.getElementById('resTotal').textContent = data.total_bill;
+
+            resultCard.classList.remove('d-none');
+        } catch (error) {
+            errorAlert.textContent = "Gagal menghubungi peladen. Pastikan container menyala.";
+            errorAlert.classList.remove('d-none');
+        }
+    }
+</script>
+
+</body>
+</html>
